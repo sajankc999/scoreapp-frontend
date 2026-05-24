@@ -2,14 +2,15 @@
   "name": "scoreapp",
   "private": true,
   "version": "0.0.0",
-  "main": "electron/main.ts",
+  "main": "electron/dist/main.cjs",
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "electron": "electron . --no-sandbox",
-    "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron\"",
+"electron": "tsc -p tsconfig.electron.json && mv electron/dist/main.js electron/dist/main.cjs && mv electron/dist/preload.js electron/dist/preload.cjs && WAYLAND_DISPLAY='' DISPLAY=:0 ELECTRON_OZONE_PLATFORM_HINT=x11 npx electron . --no-sandbox --ozone-platform=x11 --disable-gpu --disable-software-rasterizer",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "electron:build": "tsc -p electron/tsconfig.json"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -39,6 +40,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "postcss": "^8.5.8",
+    "rename-cli": "^6.2.1",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",

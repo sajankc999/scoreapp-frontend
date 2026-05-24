@@ -1,44 +1,88 @@
-import { app, BrowserWindow,ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'fs';
+import * as path from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const {app} = require("electron");
+
+// app.commandLine.appendSwitch('ozone-platform', 'x11');
+// app.commandLine.appendSwitch('disable-gpu');
+
+
+const appRoot = app.getAppPath();
+console.log(appRoot);
+// const appRoot = path.dirname(__filename);
 
 let mainWindow: BrowserWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,   // required
-      nodeIntegration: false,   // keep this off
+      preload: path.join(appRoot, 'electron/dist/preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
     },
     width: 1200,
     height: 800,
   });
-  console.log("ENV:",process.env.VITE_DEV_SERVER_URL);
+
+  console.log("ENV:", process.env.VITE_DEV_SERVER_URL);
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(appRoot, '../dist/index.html'));
   }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  const dataFilePath = app.getPath('userData');
+  console.log("User data path is:",dataFilePath);
+  const paths = {
+    settings: path.join(dataFilePath, 'settings.json'),
+    teams:    path.join(dataFilePath, 'teams.json'),
+    images:   path.join(dataFilePath, 'images'),
+  };
 
-const dataFilePath = path.join(app.getPath('userData'), 'data.json')
+  fs.mkdirSync(paths.images, { recursive: true });
 
-ipcMain.handle('read-data', async () => {
-  if (!fs.existsSync(dataFilePath)) return {}
-  const raw = fs.readFileSync(dataFilePath, 'utf-8')
-  return JSON.parse(raw)
-})
 
-ipcMain.handle('write-data', async (_event, newData) => {
-  fs.writeFileSync(dataFilePath, JSON.stringify(newData, null, 2), 'utf-8')
-  return { success: true }
-})
+  const defaultPaths = {
+  settings: path.join(appRoot, 'electron/defaults/settings.json'),
+  teams: path.join(appRoot, 'electron/defaults/teams.json'),
+  };
+
+  if (!fs.existsSync(paths.settings)) {
+    fs.copyFileSync(defaultPaths.settings, paths.settings);
+  }
+
+  if (!fs.existsSync(paths.teams)) {
+    fs.copyFileSync(defaultPaths.teams, paths.teams);
+  }
+
+
+  ipcMain.handle('read-teams', () => readJson(paths.teams));
+  ipcMain.handle('write-teams', (_e, data) => writeJson(paths.teams, data));
+  ipcMain.handle('save-image', (_e, { fileName, buffer }) => {
+    const filePath = path.join(paths.images, fileName);
+    fs.writeFileSync(filePath, Buffer.from(buffer));
+    return filePath;
+  });
+
+  // if (!fs.existsSync(paths.teams)) {
+  //   fs.copyFileSync(defaultPaths.teams, paths.teams);
+  // }
+
+  createWindow();
+});
+
+function readJson(filePath: string) {
+  if (!fs.existsSync(filePath)) return {};
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+}
+
+function writeJson(filePath: string, data: Record<string, any>) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  return { success: true };
+}
