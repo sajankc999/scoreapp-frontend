@@ -29,10 +29,16 @@ function AddTeamBtm() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  function saveTeamData(data:any){
-      //convert form data to json
-      const jsonString = JSON.stringify(data);
-      console.log("from save team data function",jsonString)
+  function saveTeamData(name:String,imageFile:File){
+  
+    
+    if (!name) {
+      console.error("Team name is required");
+      return;
+    }
+    
+    console.log("Team name:", name);
+    console.log("Image file:", imageFile?.name);
     
     //save it with writeTeam function
   }
@@ -42,13 +48,19 @@ function AddTeamBtm() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+
   };
 
-  const handleSubmit = (e:any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>)  => {
     e.preventDefault();
-    console.log(formData);
-    saveTeamData(formData)
+    // console.log(formData);
     handleClose();
+    
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const imageFile = formData.get("image") as File;
+    saveTeamData(name,imageFile);
+    
   };
 
   return (
