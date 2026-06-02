@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Box, Modal, Button, IconButton, TextField, Typography } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
+import { readTeam, writeTeam } from "../fileService";
 
 const style = {
   position: "absolute",
@@ -29,18 +30,41 @@ function AddTeamBtm() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  function saveTeamData(name:String,imageFile:File){
-  
-    
+  async function saveTeamData(name: string, imageFile: File | null) {
     if (!name) {
       console.error("Team name is required");
       return;
     }
-    
-    console.log("Team name:", name);
-    console.log("Image file:", imageFile?.name);
-    
-    //save it with writeTeam function
+
+    let imagePath = "";
+
+    try {
+      if (isElectron && imageFile) {
+        const buffer = await imageFile.arrayBuffer();
+        const fileName = `${Date.now()}_${imageFile.name}`;
+        // saveImage returns the saved file path from main
+        imagePath = await window.electronAPI.saveImage(fileName, buffer);
+      }
+
+      const data = await readTeam();
+      if (!data || typeof data !== 'object') {
+        // initialize structure if missing
+        data.team_list = [];
+      }
+      if (!Array.isArray(data.team_list)) data.team_list = [];
+
+      const newTeam = {
+        id: String(Date.now()),
+        name,
+        image: imagePath,
+      };
+
+      data.team_list.push(newTeam);
+
+      await writeTeam(data);
+    } catch (err) {
+      console.error('Failed to save team:', err);
+    }
   }
 
   const handleChange = (e:any) => {
@@ -58,8 +82,8 @@ function AddTeamBtm() {
     
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
-    const imageFile = formData.get("image") as File;
-    saveTeamData(name,imageFile);
+    const imageFile = (formData.get("image") as File) || null;
+    await saveTeamData(name, imageFile);
     
   };
 
@@ -94,22 +118,16 @@ function AddTeamBtm() {
               onChange={handleChange}
               fullWidth
             />
-            {isElectron?
-            <TextField
-            slotProps={{
-                input: {
-                inputProps: {
-                    accept:"image/*"
-                    },
-                },
-            }}
-              type= "file"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              fullWidth
-            />:<></>
-            }
+            {isElectron ? (
+              <TextField
+                type="file"
+                name="image"
+                inputProps={{ accept: "image/*" }}
+                fullWidth
+              />
+            ) : (
+              <></>
+            )}
 
             <Box
               sx={{
