@@ -1,6 +1,6 @@
 const isElectron = !!window.electronAPI
 
-export async function writeTeam(data: object) {
+export async function writeTeam(data: object){
   if (isElectron) {
     await window.electronAPI.writeTeam(data)
   } else {

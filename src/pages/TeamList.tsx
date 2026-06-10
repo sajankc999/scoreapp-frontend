@@ -1,45 +1,63 @@
 import Card from "@mui/material/Card";
-import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
 import CardMedia from "@mui/material/CardMedia";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { Box, Container } from "@mui/material";
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Margin } from "@mui/icons-material";
-import IconButton from '@mui/material/IconButton';
-import EditTeamModalBtn from "../components/EditTeamModal"
-import AddTeamBthn from "../components/AddTeamModal"
+import { Box } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import EditTeamModalBtn from "../components/EditTeamModal";
+import AddTeamBthn from "../components/AddTeamModal";
 import { useEffect, useState } from "react";
-
-
-
+import DeleteTeamModalBtn from "../components/DeleteTeamModalBtn";
 export default function TeamList() {
-  const [teams,setTeams]= useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [nextID, setNextID] = useState<number>(0);
 
-    async function loadDataFromFile() {
-      const data = await window.electronAPI.readTeam();
-      console.log("teams data read from file::",data);
-      setTeams(data.team_list);
+  async function loadDataFromFile() {
+    const data = await window.electronAPI.readTeam();
+
+    const teamsWithImages = await Promise.all(
+      data.team_list.map(async (team: any) => ({
+        ...team,
+        imageSrc: team.image
+          ? team.image.startsWith("http://") ||
+            team.image.startsWith("https://")
+            ? team.image
+            : await window.electronAPI.getImage(team.image)
+          : "",
+      })),
+    );
+
+    setTeams(teamsWithImages);
+
+    if (teamsWithImages.length > 0) {
+      const lastID = Number(teamsWithImages[teamsWithImages.length - 1].id);
+
+      setNextID(Number(lastID + 1));
+    } else {
+      setNextID(1);
     }
+  }
 
-    useEffect(() => {
+  useEffect(() => {
     loadDataFromFile();
   }, []);
 
-  const handleDelete = (team_id:String) =>{
-    console.log("what is e:",team_id);
-    // delete TeamListDummyData.team_id
+
+
+  const handleUpdate = async ()=> {
+    await loadDataFromFile();
   }
+
   return (
-    <Box maxWidth="100%" >
+    <Box maxWidth="100%">
       <Box marginBottom={8} textAlign="center">
         <Typography variant="h3">Team List</Typography>
-        <Box textAlign="right" >
-         <AddTeamBthn/>
+
+        <Box textAlign="right">
+          <AddTeamBthn nextId={nextID} />
         </Box>
       </Box>
+
       <Box
         sx={{
           display: "grid",
@@ -47,25 +65,30 @@ export default function TeamList() {
           gap: 4,
         }}
       >
-        {teams.length>0?teams.map((team_data:any) => (
-          <Card sx={{  width: "100%" }} key={team_data.id}>
-            <CardMedia
-              sx={{ height: 140 }}
-              image={team_data.image}
-              title="green iguana"
-            />
-            <CardContent>
-              <Typography gutterBottom variant="h5" component="div">
-                {team_data.name ? team_data.name : "Unknown"}
-              </Typography>
-              <EditTeamModalBtn/>
-              <IconButton onClick={()=>handleDelete(team_data.id)}>
-              <DeleteIcon/>
+        {teams.length > 0 ? (
+          teams.map((team) => (
+            <Card key={team.id} sx={{ width: "100%" }}>
+              <CardMedia
+                component="img"
+                height="140"
+                image={team.imageSrc}
+                alt={team.name}
+              />
 
-              </IconButton>
-            </CardContent>
-          </Card>
-        )):<Typography>Add teams here.</Typography>}
+              <CardContent>
+                <Typography gutterBottom variant="h5">
+                  {team.name || "Unknown"}
+                </Typography>
+
+                <EditTeamModalBtn team={team} onUpdate={handleUpdate} />
+
+                <DeleteTeamModalBtn delete_team_id={team.id} teamData={teams}/>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Typography>Add teams here.</Typography>
+        )}
       </Box>
     </Box>
   );

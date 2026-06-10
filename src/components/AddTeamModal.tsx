@@ -2,6 +2,7 @@ import * as React from "react";
 import { Box, Modal, Button, IconButton, TextField, Typography } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import { readTeam, writeTeam } from "../fileService";
+// import { pathToFileURL } from "url";
 
 const style = {
   position: "absolute",
@@ -18,7 +19,11 @@ const style = {
   gap: 2,
 };
 
-function AddTeamBtm() {
+type AddBtnProps ={
+  nextId: Number
+}
+
+function AddTeamBtm({nextId}:AddBtnProps) {
   const isElectron = !!window.electronAPI
   const [formData, setFormData] = React.useState({
   name: "",
@@ -30,7 +35,7 @@ function AddTeamBtm() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  async function saveTeamData(name: string, imageFile: File | null) {
+  async function AddTeamData(name: string, imageFile: File | null) {
     if (!name) {
       console.error("Team name is required");
       return;
@@ -54,7 +59,7 @@ function AddTeamBtm() {
       if (!Array.isArray(data.team_list)) data.team_list = [];
 
       const newTeam = {
-        id: String(Date.now()),
+        id: String(nextId),
         name,
         image: imagePath,
       };
@@ -83,7 +88,7 @@ function AddTeamBtm() {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const imageFile = (formData.get("image") as File) || null;
-    await saveTeamData(name, imageFile);
+    await AddTeamData(name, imageFile);
     
   };
 

@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readTeam: ()=> ipcRenderer.invoke("read-teams"),
   writeTeam:(data:Record<string,any>)=>ipcRenderer.invoke("write-teams",data),
   saveImage:(fileName: string, buffer: ArrayBuffer) => ipcRenderer.invoke('save-image', { fileName, buffer }),
+  getImage: (imagePath: string) => ipcRenderer.invoke("get-image", imagePath),
+  removeImage:  (imagePath: string) => ipcRenderer.invoke("remove-image", imagePath)
 })
