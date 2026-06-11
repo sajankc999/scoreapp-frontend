@@ -57,7 +57,8 @@ function EditTeamModalBtn({ team,onUpdate }:EditTeamModalBtnProps) {
     let imagePath = "";
 
     try {
-      if (imageFile) {
+      if (imageFile && imageFile.size > 0) {
+        console.log("inside the if condition block",imageFile);
         const buffer = await imageFile.arrayBuffer();
         const fileName = `${Date.now()}_${imageFile.name}`;
         // saveImage returns the saved file path from main
@@ -69,9 +70,11 @@ function EditTeamModalBtn({ team,onUpdate }:EditTeamModalBtnProps) {
 
     const UpdatedTeam = {
       id: team.id,
-      name: name,
-      image: imagePath
+      name,
+      image: imagePath?imagePath:team.image
     }
+
+    console.log("UpdateTeam is::::",UpdatedTeam);
     teamData.team_list = teamData.team_list.map((team_obj:Team) =>
       team_obj.id === team.id
         ? { ...team_obj, ...UpdatedTeam}
@@ -93,7 +96,7 @@ function EditTeamModalBtn({ team,onUpdate }:EditTeamModalBtnProps) {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const imageFile = (formData.get("image") as File) || null;
-    EditDataJson(name,imageFile);
+    await EditDataJson(name,imageFile);
     await onUpdate();
     handleClose();
   };
@@ -148,7 +151,7 @@ function EditTeamModalBtn({ team,onUpdate }:EditTeamModalBtnProps) {
               }}
               type="file"
               name="image"
-              onChange={handleChange}
+              // onChange={handleChange}
               fullWidth
             />
 
